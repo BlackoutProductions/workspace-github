@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">Delete RSA Keys</string>
+    <string name="header_label">Delete RSA keys</string>
+    <string name="action_settings">Settings</string>
+    
+    <!-- Buttons -->
+    <string name="button_deletekeys_label">Delete</string>
+    <string name="button_reboot_label">Reboot</string>
+    <string name="button_shutdown_label">Shutdown</string>
+
+</resources>

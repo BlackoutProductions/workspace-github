@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">GetInfo</string>
+    <string name="action_settings">Settings</string>
+    
+    <string name="button_uninstall_label">Uninstall</string>
+    <string name="button_images_label">Image grid</string>
+    <string name="textView_info_dummy_content">BlackBag Agent Started\nAcquisition servicestarted\nAcquiring Browser Database\nAcquiring Calendar Database\nAcquiring Call Log Database\nAcquiring Carrier Database\nAcquiring Contact Database</string>
+
+    <string name="receiver_label">receiver</string>
+    <string name="receiver_description">receiver description</string>
+    
+</resources>
