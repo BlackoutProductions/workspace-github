@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">SWapi</string>
+    <string name="title_section1">Section 1</string>
+    <string name="title_section2">Section 2</string>
+    <string name="title_section3">Section 3</string>
+    <string name="navigation_drawer_open">Open navigation drawer</string>
+    <string name="navigation_drawer_close">Close navigation drawer</string>
+    <string name="action_example">Example action</string>
+    <string name="action_settings">Settings</string>
+    
+    <!-- Data types -->
+    <string name="root">http://swapi.co/api/</string>
+    <string name="films">films</string>
+    <string name="people">people</string>
+    <string name="plantes">planets</string>
+    <string name="species">species</string>
+    <string name="starships">starships</string>
+    <string name="vehicles">vehicles</string>
+
+</resources>
