@@ -4,26 +4,26 @@ package com.kurt.swapi;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.Iterator;
+import java.util.LinkedList;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.DefaultHttpClient;
+import org.json.JSONObject;
 
-import com.kurt.json.JSONItem;
-import com.kurt.swapi.data.CallApi;
-
-import android.app.Activity;
 import android.app.ActionBar;
+import android.app.Activity;
 import android.app.Fragment;
-import android.support.v4.app.ActionBarDrawerToggle;
-import android.support.v4.view.GravityCompat;
-import android.support.v4.widget.DrawerLayout;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
+import android.support.v4.app.ActionBarDrawerToggle;
+import android.support.v4.view.GravityCompat;
+import android.support.v4.widget.DrawerLayout;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -42,7 +42,7 @@ import android.widget.Toast;
  * design guidelines</a> for a complete explanation of the behaviors implemented here.
  */
 public class NavigationDrawerFragment extends Fragment {
-    private String[] data;
+    private String[] data = new String[0];
 
     /**
      * Remember the position of the selected item.
@@ -328,8 +328,8 @@ public class NavigationDrawerFragment extends Fragment {
         @Override
         protected void onPostExecute(String raw) {
             Log.d("SWAPI", raw);
-            JSONItem root = new JSONItem(raw);
-            data = (String[]) root.getKeys().toArray();
+            JSONObject root = new JSONObject(raw);
+            data = (String[]) root.keySet().toArray();
             mDrawerListView.setAdapter(new ArrayAdapter<String>(
                     getActionBar().getThemedContext(),
                     android.R.layout.simple_list_item_activated_1,
