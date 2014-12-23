@@ -1,5 +1,6 @@
 package com.kurt.swapi;
 
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.Set;
 
@@ -63,16 +64,8 @@ public class MainActivity extends Activity
 
     public void onSectionAttached(int number) {
         Log.d("SWAPI", "Page number " + Integer.toString(number));
-        SharedPreferences settings = getPreferences(0);
-        Set<String> dataSet = settings.getStringSet("dataSet", null);
-        if (dataSet != null) {
-            // attempt to rename only if there is data to parse
-            Iterator<String> iter = dataSet.iterator();
-            for (int i = 1; i < number; i++) {
-                iter.next();
-            }
-            mTitle = iter.next();
-        }
+        SharedPreferences settings = getSharedPreferences(getString(R.string.prefs), 0);
+        mTitle = settings.getString("page" + Integer.toString(number - 1), "null");
     }
 
     public void restoreActionBar() {

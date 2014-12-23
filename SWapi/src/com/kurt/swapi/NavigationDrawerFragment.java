@@ -328,6 +328,12 @@ public class NavigationDrawerFragment extends Fragment {
             {
                 e.printStackTrace();
             }
+            // cache pages for later ?
+            //SharedPreferences settings = getActivity().getSharedPreferences(getString(R.string.prefs), 0);
+            //SharedPreferences.Editor editor = settings.edit();
+            //editor.putString("root", sb.toString());
+            // Commit the edits!
+            //editor.commit();
             
             return sb.toString();
         }
@@ -352,24 +358,25 @@ public class NavigationDrawerFragment extends Fragment {
             Collections.sort(list);
             // move them to array for adapter
             data = new String[list.size()];
-            Set<String> dataSet = new HashSet<String>();
             int i = 0;
             for (String t : list) {
                 data[i++] = t;
-                dataSet.add(t);
             }
             mDrawerListView.setAdapter(new ArrayAdapter<String>(
                     getActionBar().getThemedContext(),
                     android.R.layout.simple_list_item_activated_1,
                     android.R.id.text1,
                     data));
-            SharedPreferences settings = getActivity().getPreferences(0);
+            mDrawerListView.setItemChecked(mCurrentSelectedPosition, true);
+            // save pages in settings keyed with page number
+            SharedPreferences settings = getActivity().getSharedPreferences(getString(R.string.prefs), 0);
             SharedPreferences.Editor editor = settings.edit();
-            editor.putStringSet("dataSet", dataSet);
+            for (i = 0; i < data.length; i++) {
+                editor.putString("page" + Integer.toString(i), data[i]);
+            }
             // Commit the edits!
             editor.commit();
-            mDrawerListView.setItemChecked(mCurrentSelectedPosition, true);
         }
-        
+
     }
 }
