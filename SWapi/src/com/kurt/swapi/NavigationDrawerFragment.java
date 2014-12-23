@@ -4,13 +4,20 @@ package com.kurt.swapi;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.List;
+import java.util.Set;
+import java.util.prefs.Preferences;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.DefaultHttpClient;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import android.app.ActionBar;
@@ -42,7 +49,7 @@ import android.widget.Toast;
  * design guidelines</a> for a complete explanation of the behaviors implemented here.
  */
 public class NavigationDrawerFragment extends Fragment {
-    private String[] data = new String[0];
+    private String[] data = new String[]{"planets", "persons"};
 
     /**
      * Remember the position of the selected item.
@@ -328,13 +335,39 @@ public class NavigationDrawerFragment extends Fragment {
         @Override
         protected void onPostExecute(String raw) {
             Log.d("SWAPI", raw);
-            JSONObject root = new JSONObject(raw);
-            data = (String[]) root.keySet().toArray();
+            JSONObject root = new JSONObject();
+            try
+            {
+                root = new JSONObject(raw);
+            } catch (JSONException e)
+            {
+                e.printStackTrace();
+            }
+            // store object types in list to sort
+            Iterator<String> iter = root.keys();
+            ArrayList<String> list = new ArrayList<String>();
+            while (iter.hasNext()) {
+                list.add(iter.next());
+            }
+            Collections.sort(list);
+            // move them to array for adapter
+            data = new String[list.size()];
+            Set<String> dataSet = new HashSet<String>();
+            int i = 0;
+            for (String t : list) {
+                data[i++] = t;
+                dataSet.add(t);
+            }
             mDrawerListView.setAdapter(new ArrayAdapter<String>(
                     getActionBar().getThemedContext(),
                     android.R.layout.simple_list_item_activated_1,
                     android.R.id.text1,
                     data));
+            SharedPreferences settings = getActivity().getPreferences(0);
+            SharedPreferences.Editor editor = settings.edit();
+            editor.putStringSet("dataSet", dataSet);
+            // Commit the edits!
+            editor.commit();
             mDrawerListView.setItemChecked(mCurrentSelectedPosition, true);
         }
         
