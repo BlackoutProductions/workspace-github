@@ -16,13 +16,17 @@ import android.app.Activity;
 import android.app.Fragment;
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.database.DataSetObserver;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
+import android.widget.ExpandableListAdapter;
 import android.widget.ExpandableListView;
+import android.widget.ListView;
 import android.widget.ProgressBar;
 
 public class MainFragment extends Fragment {
@@ -39,7 +43,7 @@ public class MainFragment extends Fragment {
     String data = "";
     
     // UI
-    ExpandableListView elv;
+    ListView lv;
     ProgressBar pb;
     
     /**
@@ -96,7 +100,7 @@ public class MainFragment extends Fragment {
     
     private void getUIElements() {
         // Expandable list
-        elv = (ExpandableListView) rootView.findViewById(R.id.elv_list);
+        lv = (ListView) rootView.findViewById(R.id.lv_list);
         // Progress bar
         pb = (ProgressBar) rootView.findViewById((R.id.pb_fragment_main));
         pb.setMax(0);
@@ -138,12 +142,18 @@ public class MainFragment extends Fragment {
                     // handle JSON
                     JSONObject current = new JSONObject(sb.toString());
                     // bail if no results available
-                    if (i > 9 || (current.has("detail") && current.getString("detail") == "Not found")) {
-                        // only get 10 at a time
+                    if (i > 9)
+                        done = true;
+                    else if (current.has("detail")) {
+                        String test = current.getString("detail");
                         done = true;
                     } else if (current.has("count")) {
                         // update total count if available
                         //publishProgress(current.getInt("count"));
+                        publishProgress(max);
+                        // check for next
+                        //String[] next = new String[]{current.getString("next")};
+                        //next = next[0].split("=");
                         currentID = "1";
                     } else {
                         // add object to arraylist
@@ -192,6 +202,33 @@ public class MainFragment extends Fragment {
             // Remove updating spinner
             pb.setVisibility(View.INVISIBLE);
             // Update list
+            String[] data = new String[objects.size()];
+            int i = 0;
+            for (JSONObject obj : objects) {
+                if (obj.has("name")) {
+                    try
+                    {
+                        data[i++] = obj.getString("name");
+                    } catch (JSONException e)
+                    {
+                        //e.printStackTrace();
+                    }
+                }
+                if (obj.has("title")) {
+                    try
+                    {
+                        data[i++] = obj.getString("title");
+                    } catch (JSONException e)
+                    {
+                        //e.printStackTrace();
+                    }
+                }
+            }
+            lv.setAdapter(new ArrayAdapter<String>(
+                    context,
+                    android.R.layout.simple_list_item_1,
+                    android.R.id.text1,
+                    data));
         }
     }
     

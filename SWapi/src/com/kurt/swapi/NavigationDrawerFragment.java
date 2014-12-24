@@ -372,7 +372,7 @@ public class NavigationDrawerFragment extends Fragment {
             SharedPreferences settings = getActivity().getSharedPreferences(getString(R.string.prefs), 0);
             SharedPreferences.Editor editor = settings.edit();
             for (i = 0; i < data.length; i++) {
-                editor.putString("page" + Integer.toString(i), data[i]);
+                editor.putString("page" + Integer.toString(i + 1), data[i]);
             }
             // Commit the edits!
             editor.commit();

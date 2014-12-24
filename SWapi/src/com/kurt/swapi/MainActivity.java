@@ -65,7 +65,7 @@ public class MainActivity extends Activity
     public void onSectionAttached(int number) {
         Log.d("SWAPI", "Page number " + Integer.toString(number));
         SharedPreferences settings = getSharedPreferences(getString(R.string.prefs), 0);
-        mTitle = settings.getString("page" + Integer.toString(number - 1), "null");
+        mTitle = settings.getString("page" + Integer.toString(number), "null");
     }
 
     public void restoreActionBar() {
