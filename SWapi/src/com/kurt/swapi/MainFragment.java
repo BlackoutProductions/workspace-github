@@ -13,7 +13,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.util.Iterator;
+import java.util.List;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
@@ -36,6 +40,8 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
+import android.widget.BaseExpandableListAdapter;
+import android.widget.ExpandableListView;
 import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.Toast;
@@ -59,7 +65,7 @@ public class MainFragment extends Fragment {
     String data = "";
     
     // UI
-    ListView lv;
+    ExpandableListView elv;
     ProgressBar pb;
     
     /**
@@ -147,7 +153,7 @@ public class MainFragment extends Fragment {
     
     private void getUIElements() {
         // Expandable list
-        lv = (ListView) rootView.findViewById(R.id.lv_list);
+        elv = (ExpandableListView) rootView.findViewById(R.id.elv_list);
         // Progress bar
         pb = (ProgressBar) rootView.findViewById((R.id.pb_fragment_main));
         pb.setMax(0);
@@ -192,7 +198,7 @@ public class MainFragment extends Fragment {
         protected void onPreExecute() {
             // Add updating spinner
             pb.setVisibility(View.VISIBLE);
-            lv.setVisibility(View.INVISIBLE);
+            elv.setVisibility(View.INVISIBLE);
         }
         
         @Override
@@ -311,7 +317,8 @@ public class MainFragment extends Fragment {
         protected void onPostExecute(JSONObject current) {
             // variables needed with JSON manipulation
             JSONArray results = new JSONArray();
-            String[] data = new String[0];
+            ArrayList<String> data = new ArrayList<String>();
+            HashMap<String, ArrayList<String>> map = new HashMap<String, ArrayList<String>>();
             // werk it JSON
             try
             {
@@ -326,14 +333,26 @@ public class MainFragment extends Fragment {
                 }
                 // Get results array
                 results = current.getJSONArray("results");
-                data = new String[results.length()];
                 for (int i = 0; i < results.length(); i++) {
-                    if (results.getJSONObject(i).has("name")) {
-                        data[i] = results.getJSONObject(i).getString("name");
+                    JSONObject temp = results.getJSONObject(i);
+                    Iterator<String> iter = temp.keys();
+                    ArrayList<String> props = new ArrayList<String>();
+                    String master = "";
+                    while (iter.hasNext()) {
+                        String key = iter.next();
+                        if (key.equals("name")) {
+                            data.add(temp.getString("name"));
+                            master = temp.getString("name");
+                        }
+                        else if (key.equals("title")) {
+                            data.add(temp.getString("title"));
+                            master = temp.getString("title");
+                        }
+                        else {
+                            props.add(temp.getString(key));
+                        }
                     }
-                    if (results.getJSONObject(i).has("title")) {
-                        data[i] = results.getJSONObject(i).getString("title");
-                    }
+                    map.put(master, props);
                 }
             } catch (JSONException e)
             {
@@ -342,13 +361,9 @@ public class MainFragment extends Fragment {
             }
             // Remove updating spinner and show listview
             pb.setVisibility(View.INVISIBLE);
-            lv.setVisibility(View.VISIBLE);
+            elv.setVisibility(View.VISIBLE);
             // set list adapter
-            lv.setAdapter(new ArrayAdapter<String>(
-                    context,
-                    android.R.layout.simple_list_item_1,
-                    android.R.id.text1,
-                    data));
+            elv.setAdapter(new ExpandableListAdapter(context, data, map));
             
             // update menu to reflect available navigation options
             getActivity().invalidateOptionsMenu();
