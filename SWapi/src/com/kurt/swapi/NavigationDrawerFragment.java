@@ -2,6 +2,7 @@ package com.kurt.swapi;
 
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
@@ -267,11 +268,15 @@ public class NavigationDrawerFragment extends Fragment {
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         if (mDrawerToggle.onOptionsItemSelected(item)) {
-            return true;
-        }
-
-        if (item.getItemId() == R.id.action_example) {
-            Toast.makeText(getActivity(), "Example action.", Toast.LENGTH_SHORT).show();
+            int id = item.getItemId();
+            switch (id) {
+                case R.id.action_blast_my_cache:
+                    new BlastCache().execute(MainActivity.BLASTCACHE);
+                    break;
+                case R.id.action_settings:
+                    break;
+            }
+            
             return true;
         }
 
@@ -379,4 +384,61 @@ public class NavigationDrawerFragment extends Fragment {
         }
 
     }
+    
+    /**
+     * Clears out the cache.
+     * Full clear: 0
+     * Restore limit: 1
+     * @author kurt
+     *
+     */
+    public class BlastCache extends AsyncTask<Integer, Void, Void> {
+
+        @Override
+        protected Void doInBackground(Integer... params)
+        {
+            File[] cacheFiles;
+            switch (params[0]) {
+                case 0:
+                    // Clear it all
+                    cacheFiles = getActivity().getCacheDir().listFiles();
+                    Log.d("SWAPI", "Blast my cache!");
+                    for (File name : cacheFiles) {
+                        name.delete();
+                    }
+                    break;
+                case 1:
+                    // Clear to size
+                    long currentSize = getCacheSize();
+                    Log.d("SWAPI", "Current cache size: " + currentSize);
+                    while (getCacheSize() > MainActivity.cacheLimit) {
+                        // find oldest file
+                        cacheFiles = getActivity().getCacheDir().listFiles();
+                        File oldest = cacheFiles[0];
+                        for (File f : cacheFiles) {
+                            if (oldest.lastModified() < f.lastModified()) oldest = f;
+                        }
+                        // delete oldest file
+                        oldest.delete();
+                    }
+                    break;
+            }
+            return null;
+        }
+        
+        /**
+         * Count the current cache size.
+         * @return size the current cache size
+         */
+        private long getCacheSize() {
+            long size = 0;
+            for (File f: getActivity().getCacheDir().listFiles())
+            {
+                size += f.length();
+            }
+            return size;
+        }
+        
+    }
+
 }
