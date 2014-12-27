@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ArrayList;
@@ -51,6 +52,7 @@ public class MainFragment extends Fragment {
     private String next, prev;
     // Don't lookup new info if current info is less than 5 minutes old
     private long timeLimit = 5 * 60 * 1000;
+    private JSONArray results;
     
     /**
      * The fragment argument representing the section number for this
@@ -275,7 +277,7 @@ public class MainFragment extends Fragment {
                 //e.printStackTrace();
                 Log.d("SWAPI", "JSON load failure");
             }
-            
+                        
             // trim url for cache file name
             url = url.replace(getString(R.string.root), "").replace("/?page=", "");
             url += "-" + new Date().getTime();
@@ -311,12 +313,10 @@ public class MainFragment extends Fragment {
                 pb.setProgress(progress[0]);
             }
         }
-
         
         @Override
         protected void onPostExecute(JSONObject current) {
             // variables needed with JSON manipulation
-            JSONArray results = new JSONArray();
             ArrayList<String> data = new ArrayList<String>();
             HashMap<String, ArrayList<String[]>> map = new HashMap<String, ArrayList<String[]>>();
             // werk it JSON
@@ -335,6 +335,7 @@ public class MainFragment extends Fragment {
                 results = current.getJSONArray("results");
                 for (int i = 0; i < results.length(); i++) {
                     JSONObject temp = results.getJSONObject(i);
+                    //new NormalizeJSONObject().execute(temp);
                     Iterator<String> iter = temp.keys();
                     ArrayList<String[]> props = new ArrayList<String[]>();
                     String master = "";
@@ -426,4 +427,112 @@ public class MainFragment extends Fragment {
         
     }
     
+    private class NormalizeJSONObject extends AsyncTask<JSONObject, Void, JSONObject> {
+
+        @Override
+        protected JSONObject doInBackground(JSONObject... params)
+        {
+            JSONObject obj = params[0];
+            JSONObject normalized = new JSONObject();
+            try
+            {
+                Iterator<String> iter = obj.keys();
+                while (iter.hasNext()) {
+                    String key = iter.next();
+                    StringBuilder value = new StringBuilder();
+                    key = key.replace("_", " ");
+                    
+                    // SINGLE LINK
+                    // homeworld
+                    if (key.equals("homeworld")) {
+                            value.append(getNameFromUrl(obj.get("homeworld")));
+                    }
+                    // url - do nothing
+                    
+                    // ARRAYS OF LINKS
+                    // films
+                    // species
+                    // vehicles
+                    // starships
+                    if (key.equals("films") || key.equals("species") || key.equals("vehices") || key.equals("starships")) {
+                        JSONArray arr = new JSONArray(obj.getJSONArray(key));
+                        ArrayList<String> values = new ArrayList<String>();
+                        for (int i = 0; i < arr.length(); i++) {
+                            values.add(getNameFromUrl(arr.get(i)));
+                        }
+                        Collections.sort(values);
+                        value.append(values.toString().replace("[", "").replace("]", ""));
+                    }
+                    // DATE OBJECTS
+                    // created
+                    // edited
+                    if (key.equals("created") || key.equals("edited")) {
+                        String date = obj.getString(key);
+                        date.replace("T", " ").replace("Z", " UTC");
+                    }
+                    
+                    // remove the key/value and reinsert new
+                    iter.remove();
+                    normalized.putOpt(key, value.toString());
+                    
+                }
+            } catch (JSONException e)
+            {
+                //e.printStackTrace();
+                Log.d("SWAPI", "Fail to manipulate JSON: MainFragment.NormalizeJSONObject");
+            }
+            
+            return normalized;
+        }
+        
+        /**
+         * Helper function to get a name or title from a URL
+         * @param url the URL to get
+         * @return the name or title from the JSONObject at the url
+         */
+        protected String getNameFromUrl(Object url) {
+            StringBuilder sb = new StringBuilder();
+            DefaultHttpClient httpclient = new DefaultHttpClient();
+            HttpGet httpget = new HttpGet(url.toString());
+            HttpResponse response;
+
+            try
+            {
+                response = httpclient.execute(httpget);
+                BufferedReader in = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
+                String line = "";
+                while ((line = in.readLine()) != null) {                    
+                    sb.append(line);
+                }
+                in.close();
+                
+                // handle JSON
+                JSONObject current = new JSONObject(sb.toString());
+                sb = new StringBuilder();
+                if (current.has("title")) return current.getString("title");
+                if (current.has("name")) return current.getString("name");
+            } catch (ClientProtocolException e)
+            {
+                //e.printStackTrace();
+                Log.d("SWAPI", "Parse URL for name/title fail: MainFragment.getNameFromUrl");
+            } catch (IOException e)
+            {
+                //e.printStackTrace();
+                Log.d("SWAPI", "IO write fail: MainFragment.getNameFromUrl");
+            } catch (JSONException e)
+            {
+                //e.printStackTrace();
+                Log.d("SWAPI", "Load JSON fail: MainFragment.doInBackground.getNameFromUrl");
+            }
+
+            // if nothing works return the url
+            return url.toString();
+        }
+        
+        @Override
+        protected void onPostExecute(JSONObject temp) {
+            
+        }
+        
+    }
 }
