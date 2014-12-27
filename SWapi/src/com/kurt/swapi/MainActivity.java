@@ -31,7 +31,7 @@ public class MainActivity extends Activity
         implements NavigationDrawerFragment.NavigationDrawerCallbacks {
 
     // cache variables
-    public static long cacheLimit = 50000;
+    public static long cacheLimit = 150000;
     public static int BLASTCACHE = 0;
     public static int FITCACHE = 1;
     

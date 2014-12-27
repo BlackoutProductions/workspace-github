@@ -318,7 +318,7 @@ public class MainFragment extends Fragment {
             // variables needed with JSON manipulation
             JSONArray results = new JSONArray();
             ArrayList<String> data = new ArrayList<String>();
-            HashMap<String, ArrayList<String>> map = new HashMap<String, ArrayList<String>>();
+            HashMap<String, ArrayList<String[]>> map = new HashMap<String, ArrayList<String[]>>();
             // werk it JSON
             try
             {
@@ -336,7 +336,7 @@ public class MainFragment extends Fragment {
                 for (int i = 0; i < results.length(); i++) {
                     JSONObject temp = results.getJSONObject(i);
                     Iterator<String> iter = temp.keys();
-                    ArrayList<String> props = new ArrayList<String>();
+                    ArrayList<String[]> props = new ArrayList<String[]>();
                     String master = "";
                     while (iter.hasNext()) {
                         String key = iter.next();
@@ -349,7 +349,7 @@ public class MainFragment extends Fragment {
                             master = temp.getString("title");
                         }
                         else {
-                            props.add(temp.getString(key));
+                            props.add(new String[]{key, temp.getString(key)});
                         }
                     }
                     map.put(master, props);

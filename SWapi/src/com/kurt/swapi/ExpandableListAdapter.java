@@ -15,16 +15,16 @@ public class ExpandableListAdapter extends BaseExpandableListAdapter {
     
     private Context context;
     private ArrayList<String> listDataHeader;
-    private HashMap<String, ArrayList<String>> listDataChild;
+    private HashMap<String, ArrayList<String[]>> listDataChild;
     
-    public ExpandableListAdapter(Context context, ArrayList<String> listDataHeader, HashMap<String, ArrayList<String>> listDataChild) {
+    public ExpandableListAdapter(Context context, ArrayList<String> listDataHeader, HashMap<String, ArrayList<String[]>> listDataChild) {
         this.context = context;
         this.listDataChild = listDataChild;
         this.listDataHeader = listDataHeader;
     }
 
     @Override
-    public Object getChild(int groupPosition, int childPosition)
+    public String[] getChild(int groupPosition, int childPosition)
     {
         return listDataChild.get(listDataHeader.get(groupPosition)).get(childPosition);
     }
@@ -39,15 +39,17 @@ public class ExpandableListAdapter extends BaseExpandableListAdapter {
     public View getChildView(int groupPosition, int childPosition,
             boolean isLastChild, View convertView, ViewGroup parent)
     {
-        final String childText = (String) getChild(groupPosition, childPosition);
+        final String[] childText = getChild(groupPosition, childPosition);
         
         if (convertView == null) {
             LayoutInflater inflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
             convertView = inflater.inflate(R.layout.list_item, null);
         }
         
-        TextView txtListChild = (TextView) convertView.findViewById(R.id.elv_item);
-        txtListChild.setText(childText);
+        TextView elvListChildKey = (TextView) convertView.findViewById(R.id.elv_item_key);
+        TextView elvListChildValue = (TextView) convertView.findViewById(R.id.elv_item_value);
+        elvListChildKey.setText(childText[0]);
+        elvListChildValue.setText(childText[1]);
         
         return convertView;
     }
