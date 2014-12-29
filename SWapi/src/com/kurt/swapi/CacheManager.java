@@ -16,7 +16,8 @@ public class CacheManager {
     // instance fields
     private static Activity activity;
     private static File cacheDir;
-    private static long timeLimit = 5 * 60 * 1000;
+    // 24 hours * 60 minutes * 60 seconds * 1000 milliseconds
+    private static long timeLimit = 24 * 60 * 60 * 1000;
     
     public CacheManager(Activity aActivity) {
         activity = aActivity;
@@ -31,6 +32,7 @@ public class CacheManager {
     public File findByUrl(String url) {
         // Parse url for file name
         // normalize url into file string
+        if (url.equals("null") || url == null) return null;
         String search = normalizeUrl(url);
         Log.d("SWAPI", "Searching for file: " + search + " from url " + url);
         
@@ -80,7 +82,8 @@ public class CacheManager {
      * @return the normalized url as a cache file name
      */
     private String normalizeUrl(String url) {
-        return url.replace(activity.getString(R.string.root), "").replace("/?", "").replace("=", "").replace("/", "");
+        if (url.equals("null") || url == null) return "";
+        else return url.replace(activity.getString(R.string.root), "").replace("/?", "").replace("=", "").replace("/", "");
     }
     
     /**
@@ -107,8 +110,6 @@ public class CacheManager {
                     break;
                 case 1:
                     // Clear to size
-                    long currentSize = getCacheSize();
-                    Log.d("SWAPI", "Current cache size: " + currentSize);
                     while (getCacheSize() > MainActivity.cacheLimit) {
                         // find oldest file
                         cacheFiles = cacheDir.listFiles();

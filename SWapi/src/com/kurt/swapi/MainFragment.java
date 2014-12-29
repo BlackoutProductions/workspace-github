@@ -278,7 +278,7 @@ public class MainFragment extends Fragment {
 
             
             // cache it cache it cache it up
-            cm.cacheFileByUrl(url, sb.toString());
+            cm.cacheFileByUrl(url, current.toString());
             
             
             Date end = new Date();
@@ -319,7 +319,9 @@ public class MainFragment extends Fragment {
                     // species
                     // vehicles
                     // starships
-                    else if (key.equals("films") || key.equals("species") || key.equals("vehicles") || key.equals("starships") || key.equals("characters") || key.equals("planets")) {
+                    else if (key.equals("films") || key.equals("species") || key.equals("vehicles") || key.equals("starships") || 
+                            key.equals("characters") || key.equals("planets") || key.equals("residents") || key.equals("people") ||
+                            key.equals("pilots")) {
                         JSONArray arr = obj.getJSONArray(key);
                         ArrayList<String> values = new ArrayList<String>();
                         for (int i = 0; i < arr.length(); i++) {
@@ -365,6 +367,8 @@ public class MainFragment extends Fragment {
          * @return the name or title from the JSONObject at the url
          */
         protected String getNameFromUrl(Object url) {
+            if (url == null || url.toString() == "null") return "";
+            
             StringBuilder sb = new StringBuilder();
             DefaultHttpClient httpclient = new DefaultHttpClient();
             HttpGet httpget = new HttpGet(url.toString());
@@ -490,61 +494,5 @@ public class MainFragment extends Fragment {
             // update menu to reflect available navigation options
             getActivity().invalidateOptionsMenu();
         }
-    }
-    
-    /**
-     * Clears out the cache.
-     * Full clear: 0
-     * Restore limit: 1
-     * @author kurt
-     *
-     */
-    public class BlastCache extends AsyncTask<Integer, Void, Void> {
-
-        @Override
-        protected Void doInBackground(Integer... params)
-        {
-            File[] cacheFiles;
-            switch (params[0]) {
-                case 0:
-                    // Clear it all
-                    cacheFiles = getActivity().getCacheDir().listFiles();
-                    Log.d("SWAPI", "Blast my cache!");
-                    for (File name : cacheFiles) {
-                        name.delete();
-                    }
-                    break;
-                case 1:
-                    // Clear to size
-                    long currentSize = getCacheSize();
-                    Log.d("SWAPI", "Current cache size: " + currentSize);
-                    while (getCacheSize() > MainActivity.cacheLimit) {
-                        // find oldest file
-                        cacheFiles = getActivity().getCacheDir().listFiles();
-                        File oldest = cacheFiles[0];
-                        for (File f : cacheFiles) {
-                            if (oldest.lastModified() < f.lastModified()) oldest = f;
-                        }
-                        // delete oldest file
-                        oldest.delete();
-                    }
-                    break;
-            }
-            return null;
-        }
-        
-        /**
-         * Count the current cache size.
-         * @return size the current cache size
-         */
-        private long getCacheSize() {
-            long size = 0;
-            for (File f: getActivity().getCacheDir().listFiles())
-            {
-                size += f.length();
-            }
-            return size;
-        }
-        
-    }
+    }    
 }
