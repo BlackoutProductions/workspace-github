@@ -1,37 +1,21 @@
 package com.kurt.swapi;
 
-import java.io.File;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.Set;
-
-import android.app.Activity;
-
 import android.app.ActionBar;
-import android.app.Fragment;
+import android.app.Activity;
 import android.app.FragmentManager;
-import android.content.Context;
 import android.content.SharedPreferences;
-import android.os.AsyncTask;
-import android.os.Build;
 import android.os.Bundle;
+import android.support.v4.widget.DrawerLayout;
 import android.util.Log;
-import android.view.Gravity;
-import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.View;
-import android.view.ViewGroup;
-import android.support.v4.widget.DrawerLayout;
-import android.widget.ArrayAdapter;
-import android.widget.TextView;
 
 
 public class MainActivity extends Activity
         implements NavigationDrawerFragment.NavigationDrawerCallbacks {
 
     // cache variables
-    public static long cacheLimit = 150000;
+    public static long cacheLimit = 1000000;
     public static int BLASTCACHE = 0;
     public static int FITCACHE = 1;
     
@@ -108,62 +92,4 @@ public class MainActivity extends Activity
         }
         return super.onOptionsItemSelected(item);
     }
-    
-    /**
-     * Clears out the cache.
-     * Full clear: 0
-     * Restore limit: 1
-     * @author kurt
-     *
-     */
-    public class BlastCache extends AsyncTask<Integer, Void, Void> {
-
-        @Override
-        protected Void doInBackground(Integer... params)
-        {
-            File[] cacheFiles;
-            switch (params[0]) {
-                case 0:
-                    // Clear it all
-                    cacheFiles = getCacheDir().listFiles();
-                    Log.d("SWAPI", "Blast my cache!");
-                    for (File name : cacheFiles) {
-                        name.delete();
-                    }
-                    break;
-                case 1:
-                    // Clear to size
-                    long currentSize = getCacheSize();
-                    Log.d("SWAPI", "Current cache size: " + currentSize);
-                    while (getCacheSize() > MainActivity.cacheLimit) {
-                        // find oldest file
-                        cacheFiles = getCacheDir().listFiles();
-                        File oldest = cacheFiles[0];
-                        for (File f : cacheFiles) {
-                            if (oldest.lastModified() < f.lastModified()) oldest = f;
-                        }
-                        // delete oldest file
-                        oldest.delete();
-                    }
-                    break;
-            }
-            return null;
-        }
-        
-        /**
-         * Count the current cache size.
-         * @return size the current cache size
-         */
-        private long getCacheSize() {
-            long size = 0;
-            for (File f: getCacheDir().listFiles())
-            {
-                size += f.length();
-            }
-            return size;
-        }
-        
-    }
-
-
 }

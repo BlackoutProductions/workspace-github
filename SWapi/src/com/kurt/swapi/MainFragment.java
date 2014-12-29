@@ -1,24 +1,16 @@
 package com.kurt.swapi;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.FileReader;
-import java.io.FilenameFilter;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Iterator;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
@@ -40,10 +32,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ArrayAdapter;
-import android.widget.BaseExpandableListAdapter;
 import android.widget.ExpandableListView;
-import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.Toast;
 
@@ -51,7 +40,6 @@ public class MainFragment extends Fragment {
     
     private String next, prev;
     // Don't lookup new info if current info is less than 5 minutes old
-    private long timeLimit = 5 * 60 * 1000;
     private JSONArray results;
     
     /**
@@ -206,47 +194,39 @@ public class MainFragment extends Fragment {
         @Override
         protected JSONObject doInBackground(String... params)
         {
+            Date start = new Date();
+            Log.d("SWAPI", "Starting data pull: " + start.getTime());
             // Get and parse data
             String url = params[0];
             
             // Check for cached data that is reasonably young
-            String[] cacheList = getActivity().getCacheDir().list();
-            String search = url.replace(getString(R.string.root), "").replace("/?page=", "");
-            for (String s : cacheList) {
-                if (search.equals(s.split("-")[0])) {
-                    long now = new Date().getTime();
-                    long old = Long.parseLong(s.split("-")[1]);
-                    if (now - old < timeLimit) {
-                        // read cache file into JSONObject and return
-                        try
-                        {
-                            BufferedReader in = new BufferedReader(new FileReader(new File(getActivity().getCacheDir(), s)));
-                            StringBuffer sb = new StringBuffer("");
-                            String line;
-                            while ((line = in.readLine()) != null) sb.append(line);
-                            in.close();
-                            return new JSONObject(sb.toString());
-                        } catch (FileNotFoundException e)
-                        {
-                            //e.printStackTrace();
-                            Log.d("SWAPI", "File not found error: MainFragment.doInBackground");
-                        } catch (IOException e)
-                        {
-                            //e.printStackTrace();
-                            Log.d("SWAPI", "File read error: MainFragment.doInBackground");
-                        } catch (JSONException e)
-                        {
-                            //e.printStackTrace();
-                            Log.d("SWAPI", "Error converting JSON error: MainFragment.doInBackground");
-                        }
-                    }
-                    // remove outdated cache file and continue
-                    File file = new File(getActivity().getCacheDir().getPath() + "/" + s);
-                    file.delete();
-                    break;
+            CacheManager cm = new CacheManager(getActivity());
+            File cacheFile = cm.findByUrl(url);
+            if (cacheFile != null) {
+                try
+                {
+                    BufferedReader in = new BufferedReader(new FileReader(cacheFile));
+                    StringBuffer sb = new StringBuffer("");
+                    String line;
+                    while ((line = in.readLine()) != null) sb.append(line);
+                    in.close();
+                    return new JSONObject(sb.toString());
+                } catch (FileNotFoundException e)
+                {
+                    //e.printStackTrace();
+                    Log.d("SWAPI", "File not found error: MainFragment.doInBackground");
+                } catch (IOException e)
+                {
+                    //e.printStackTrace();
+                    Log.d("SWAPI", "File read error: MainFragment.doInBackground");
+                } catch (JSONException e)
+                {
+                    //e.printStackTrace();
+                    Log.d("SWAPI", "Error converting JSON error: MainFragment.doInBackground");
                 }
             }
-            
+                        
+            // Request JSON data and parse to string
             JSONObject current = new JSONObject();
             DefaultHttpClient httpclient = new DefaultHttpClient();
             HttpGet httpget = new HttpGet(url);
@@ -254,6 +234,7 @@ public class MainFragment extends Fragment {
             StringBuffer sb = new StringBuffer("");
             try
             {
+                Log.d("SWAPI", "Requesting " + url);
                 response = httpclient.execute(httpget);
                 BufferedReader in = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
                 String line = "";
@@ -264,41 +245,181 @@ public class MainFragment extends Fragment {
                 
                 // handle JSON
                 current = new JSONObject(sb.toString());
+            
+                // normalize JSON to remove URLs and replace them with name/title
+                // need to do this before they get cached
+                // remove results array from response
+                JSONArray arrayJSON = (JSONArray) current.remove("results");
+                JSONArray normalizedJSON = new JSONArray();
+                for (int i = 0; i < arrayJSON.length(); i++) {
+                    // remove from old array
+                    JSONObject temp = (JSONObject) arrayJSON.get(i);
+                    // normalize
+                    temp = normalizeJSONObject(temp);
+                    // put into new array
+                    normalizedJSON.put(temp);
+                }
+                // add refilled array back to results
+                current.put("results", normalizedJSON);
+            
             } catch (ClientProtocolException e)
             {
                 //e.printStackTrace();
-                Log.d("SWAPI", "ClientProtocolException");
+                Log.e("SWAPI", "ClientProtocolException");
             } catch (IOException e)
             {
                 //e.printStackTrace();
-                Log.d("SWAPI", "IOException");
+                Log.e("SWAPI", "IOException");
             } catch (JSONException e)
             {
                 //e.printStackTrace();
-                Log.d("SWAPI", "JSON load failure");
+                Log.e("SWAPI", "JSON load failure");
             }
-                        
-            // trim url for cache file name
-            url = url.replace(getString(R.string.root), "").replace("/?page=", "");
-            url += "-" + new Date().getTime();
+
+            
             // cache it cache it cache it up
+            cm.cacheFileByUrl(url, sb.toString());
+            
+            
+            Date end = new Date();
+            Log.d("SWAPI", "End data pull and processing: " + end.getTime());
+            long duration = (end.getTime() - start.getTime()) / 1000;
+            Log.d("SWAPI", "Action took " + duration + " seconds");
+
+            
+            return current;
+        }
+        
+        /**
+         * Normalizes and returns JSONObject by removing links and replacing them
+         * with their associated name or title.
+         * @param obj the JSONObject to normalize
+         * @return a normalized JSONObject
+         */
+        protected JSONObject normalizeJSONObject(JSONObject obj) {
+            JSONObject normalized = new JSONObject();
             try
             {
-                // cache naming convention: <data><page>-<current time in milliseconds>
-                File file = new File(getActivity().getCacheDir(), url);
-                OutputStream outputStream = new BufferedOutputStream(new FileOutputStream(file));
-                outputStream.write(sb.toString().getBytes());
-                outputStream.close();
-                // check cache size and clean if necessary
-                new BlastCache().execute(MainActivity.FITCACHE);
+                Iterator<String> iter = obj.keys();
+                while (iter.hasNext()) {
+                    String key = iter.next();
+                    String normalizedKey = "";
+                    StringBuilder value = new StringBuilder();
+                    normalizedKey = key.replace("_", " ");
+                    
+                    // SINGLE LINK
+                    // homeworld
+                    if (key.equals("homeworld")) {
+                            value.append(getNameFromUrl(obj.get("homeworld")));
+                    }
+                    // url - do nothing
+                    
+                    // ARRAYS OF LINKS
+                    // films
+                    // species
+                    // vehicles
+                    // starships
+                    else if (key.equals("films") || key.equals("species") || key.equals("vehicles") || key.equals("starships") || key.equals("characters") || key.equals("planets")) {
+                        JSONArray arr = obj.getJSONArray(key);
+                        ArrayList<String> values = new ArrayList<String>();
+                        for (int i = 0; i < arr.length(); i++) {
+                            values.add(getNameFromUrl(arr.get(i)));
+                        }
+                        Collections.sort(values);
+                        value.append(values.toString().replace("[", "").replace("]", ""));
+                    }
+                    // DATE OBJECTS
+                    // created
+                    // edited
+                    else if (key.equals("created") || key.equals("edited")) {
+                        String date = obj.getString(key);
+                        date = date.replace("T", " ").replace("Z", " UTC");
+                        value.append(date);
+                    }
+                    // Special non-string value THAT ONLY EXISTS IN FILMS
+                    else if (key.equals("episode_id")) {
+                        value.append(Integer.toString(obj.getInt("episode_id")));
+                    }
+                    // String values are the easiest
+                    else {
+                        value.append(obj.getString(key));
+                    }
+                    
+                    // remove the key/value and reinsert new
+                    iter.remove();
+                    normalized.putOpt(normalizedKey, value.toString());
+                    
+                }
+            } catch (JSONException e)
+            {
+                //e.printStackTrace();
+                Log.e("SWAPI", "Fail to manipulate JSON: MainFragment.NormalizeJSONObject");
+            }
+            
+            return normalized;
+        }
+        
+        /**
+         * Helper function to get a name or title from a URL
+         * @param url the URL to get
+         * @return the name or title from the JSONObject at the url
+         */
+        protected String getNameFromUrl(Object url) {
+            StringBuilder sb = new StringBuilder();
+            DefaultHttpClient httpclient = new DefaultHttpClient();
+            HttpGet httpget = new HttpGet(url.toString());
+            HttpResponse response;
+            String toReturn = "";
+            CacheManager cm = new CacheManager(getActivity());
+
+            try
+            {
+                File cacheFile = cm.findByUrl(url.toString());
+                // check cache for existence of matching file
+                if (cacheFile != null) {
+                    Log.d("SWAPI", "Cache file found: " + cacheFile.toString());
+                    BufferedReader in = new BufferedReader(new FileReader(cacheFile));
+                    String line;
+                    while ((line = in.readLine()) != null) sb.append(line);
+                    in.close();
+                }
+                else {
+                    // if not load resource from web
+                    Log.d("SWAPI", "Requesting " + url.toString());
+                    response = httpclient.execute(httpget);
+                    BufferedReader in = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
+                    String line = "";
+                    while ((line = in.readLine()) != null) {                    
+                        sb.append(line);
+                    }
+                    in.close();
+                    // cache file for later use
+                    cm.cacheFileByUrl(url.toString(), sb.toString());
+                }
+                
+                // handle JSON
+                JSONObject current = new JSONObject(sb.toString());
+                sb = new StringBuilder();
+                if (current.has("title")) toReturn = current.getString("title");
+                if (current.has("name")) toReturn = current.getString("name");
+            } catch (ClientProtocolException e)
+            {
+                //e.printStackTrace();
+                Log.d("SWAPI", "Parse URL for name/title fail: MainFragment.getNameFromUrl");
             } catch (IOException e)
             {
                 //e.printStackTrace();
-                Log.d("SWAPI", "File creation failure: MainFragment.doInBackground");
+                Log.d("SWAPI", "IO write fail: MainFragment.getNameFromUrl");
+            } catch (JSONException e)
+            {
+                //e.printStackTrace();
+                Log.d("SWAPI", "Load JSON fail: MainFragment.doInBackground.getNameFromUrl");
             }
 
-            return current;
+            // if nothing works return the url
+            return (toReturn.equals("")) ? url.toString(): toReturn;
         }
+
         
         @Override
         protected void onProgressUpdate(Integer... progress) {
@@ -423,115 +544,6 @@ public class MainFragment extends Fragment {
                 size += f.length();
             }
             return size;
-        }
-        
-    }
-    
-    private class NormalizeJSONObject extends AsyncTask<JSONObject, Void, JSONObject> {
-
-        @Override
-        protected JSONObject doInBackground(JSONObject... params)
-        {
-            JSONObject obj = params[0];
-            JSONObject normalized = new JSONObject();
-            try
-            {
-                Iterator<String> iter = obj.keys();
-                while (iter.hasNext()) {
-                    String key = iter.next();
-                    StringBuilder value = new StringBuilder();
-                    key = key.replace("_", " ");
-                    
-                    // SINGLE LINK
-                    // homeworld
-                    if (key.equals("homeworld")) {
-                            value.append(getNameFromUrl(obj.get("homeworld")));
-                    }
-                    // url - do nothing
-                    
-                    // ARRAYS OF LINKS
-                    // films
-                    // species
-                    // vehicles
-                    // starships
-                    if (key.equals("films") || key.equals("species") || key.equals("vehices") || key.equals("starships")) {
-                        JSONArray arr = new JSONArray(obj.getJSONArray(key));
-                        ArrayList<String> values = new ArrayList<String>();
-                        for (int i = 0; i < arr.length(); i++) {
-                            values.add(getNameFromUrl(arr.get(i)));
-                        }
-                        Collections.sort(values);
-                        value.append(values.toString().replace("[", "").replace("]", ""));
-                    }
-                    // DATE OBJECTS
-                    // created
-                    // edited
-                    if (key.equals("created") || key.equals("edited")) {
-                        String date = obj.getString(key);
-                        date.replace("T", " ").replace("Z", " UTC");
-                    }
-                    
-                    // remove the key/value and reinsert new
-                    iter.remove();
-                    normalized.putOpt(key, value.toString());
-                    
-                }
-            } catch (JSONException e)
-            {
-                //e.printStackTrace();
-                Log.d("SWAPI", "Fail to manipulate JSON: MainFragment.NormalizeJSONObject");
-            }
-            
-            return normalized;
-        }
-        
-        /**
-         * Helper function to get a name or title from a URL
-         * @param url the URL to get
-         * @return the name or title from the JSONObject at the url
-         */
-        protected String getNameFromUrl(Object url) {
-            StringBuilder sb = new StringBuilder();
-            DefaultHttpClient httpclient = new DefaultHttpClient();
-            HttpGet httpget = new HttpGet(url.toString());
-            HttpResponse response;
-
-            try
-            {
-                response = httpclient.execute(httpget);
-                BufferedReader in = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
-                String line = "";
-                while ((line = in.readLine()) != null) {                    
-                    sb.append(line);
-                }
-                in.close();
-                
-                // handle JSON
-                JSONObject current = new JSONObject(sb.toString());
-                sb = new StringBuilder();
-                if (current.has("title")) return current.getString("title");
-                if (current.has("name")) return current.getString("name");
-            } catch (ClientProtocolException e)
-            {
-                //e.printStackTrace();
-                Log.d("SWAPI", "Parse URL for name/title fail: MainFragment.getNameFromUrl");
-            } catch (IOException e)
-            {
-                //e.printStackTrace();
-                Log.d("SWAPI", "IO write fail: MainFragment.getNameFromUrl");
-            } catch (JSONException e)
-            {
-                //e.printStackTrace();
-                Log.d("SWAPI", "Load JSON fail: MainFragment.doInBackground.getNameFromUrl");
-            }
-
-            // if nothing works return the url
-            return url.toString();
-        }
-        
-        @Override
-        protected void onPostExecute(JSONObject temp) {
-            
         }
         
     }
